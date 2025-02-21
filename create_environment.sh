@@ -1,0 +1,106 @@
+#!/bin/bash
+#script will prompt user
+read -p "Welcome,what is your name?" Name
+#creating directory for the user
+mkdir submission_reminder_$Name
+#creating sub directories and files 
+install -D /dev/null /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/app/reminder.sh
+install -D /dev/null /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/modules/functions.sh
+install -D /dev/null /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/assets/submissions.txt
+install -D /dev/null /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/config/config.env
+install -D /dev/null /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/startup.sh
+#pasting required contents
+cat <<EOF > "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/app/reminder.sh"
+#!/bin/bash
+#source environment variables and helper functions
+source /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/config/config.env
+source /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/modules/functions.sh
+#path to submissions file
+submissions_file="/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/assets/submissions.txt"
+# Print remaining time and run the reminder function
+echo "Assignment: \$ASSIGNMENT"
+echo "Days remaining to submit: \$DAYS_REMAINING days"
+echo "--------------------------------------------"
+
+check_submissions \$submissions_file/
+EOF
+#
+cat <<EOF > "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/modules/functions.sh"
+#!/bin/bash
+# Function to read submissions file and output students who have not submitted
+function check_submissions {
+    local submissions_file=\$1
+    echo "Checking submissions in \$submissions_file"
+
+    # Skip the header and iterate through the lines
+    while IFS=, read -r student assignment status; do
+        # Remove leading and trailing whitespace
+        student=\$(echo "\$student" | xargs)
+        assignment=\$(echo "\$assignment" | xargs)
+        status=\$(echo "\$status" | xargs)
+
+        # Check if assignment matches and status is 'not submitted'
+        if [[ "\$assignment" == "\$ASSIGNMENT" && "\$status" == "not submitted" ]]; then
+            echo "Reminder: \$student has not submitted the \$ASSIGNMENT assignment!"
+        fi
+    done < <(tail -n +2 "\$submissions_file") # Skip the header
+}
+EOF
+#
+cat <<EOF > "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/assets/submissions.txt"
+student, assignment, submission status
+Chinemerem, Shell Navigation, not submitted
+Chiagoziem, Git, submitted
+Divine, Shell Navigation, not submitted
+Anissa, Shell Basics, submitted
+Kwame, Git, submitted
+Mutheu, Shell Basics, submitted
+Katheke, Shell Navigation, not submitted
+Mutanu, Git, submitted
+Mbithi, Git, not submitted
+Deidre, Git, submitted
+EOF
+#
+cat <<EOF > "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/config/config.env"
+# This is the config file
+ASSIGNMENT="Shell Navigation"
+DAYS_REMAINING=2
+EOF
+#
+cat <<EOF > "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/startup.sh"
+#!/bin/bash
+# startup.sh - Start the submission reminder application
+
+# Check if the necessary files required exist
+if [ ! -f "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/config/config.env" ]; then
+    echo "Error: config.env not found!"
+    exit 1
+fi
+if [ ! -f "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/modules/functions.sh" ]; then
+    echo "Error: functions.sh not found!"
+    exit 1
+fi
+if [ ! -f "/submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/assets/submissions.txt" ]; then
+    echo "Error: submissions.txt not found!"
+    exit 1
+fi
+# Source the config file and functions file
+source /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/config/config.env
+source /submission_reminder_app_ndunge-mbithi/submission_reminder_$Name/modules/functions.sh
+# Check if all required variables are set
+if [ -z "\$ASSIGNMENT" ] || [ -z "\$DAYS_REMAINING" ]; then
+    echo "Error: Required environment variables (ASSIGNMENT, DAYS_REMAINING) are not set in config.env"
+    exit 1
+fi
+# Print initial information
+echo "===================================="
+echo "Starting Submission Reminder App"
+echo "Assignment: \$ASSIGNMENT"
+echo "Days remaining to submit: \$DAYS_REMAINING"
+echo "===================================="
+# Execute the reminder script
+./app/reminder.sh
+
+EOF
+
+
